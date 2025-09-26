@@ -1,16 +1,17 @@
 class Produto:
-    def __init__(self, produtos: str, preco: float, estoque: int) -> None:
-        self.produtos = produtos
+    def __init__(self, nome: str, preco: float, estoque: int) -> None:
+        self.nome = nome
         self.preco = preco
         self.estoque = estoque
 
     def __str__(self):
-        return f"{self.produtos}"
+        return f"{self.nome}"
 
-    @property
-    def disponivel(self):
-        return self.estoque > 0
+    def disponivel(self, qtd: int = 1) -> bool:
+        return self.estoque >= qtd
 
-
-    def comprado(self):
-        self.estoque -= 1
+    def reservar(self, qtd: int = 1) -> bool:
+        if self.disponivel(qtd):
+            self.estoque -= qtd
+            return True
+        return False
