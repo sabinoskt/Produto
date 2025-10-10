@@ -1,47 +1,56 @@
+from collections import Counter
+from logs.log_historico import salvar_historico
 from models.produto import Produto
 from models.cliente import Cliente
 from utils.io import input_text, input_num, input_confirmacao
 from models.carrinho import Carrinho
+from produto import obter_produtos
 
-LISTA_PRODUTOS = [
-    Produto('Mochila', 149.90, 3),
-    Produto('Fone de Ouvido', 89.90, 5),
-    Produto('Camiseta', 39.90, 10),
-    Produto('Garrafa Térmica', 59.90, 8),
-    Produto('Caneta Azul', 2.50, 100)
-]
+lista_produtos = []
+
+var_produtos = obter_produtos()
+
+if var_produtos != '':
+    for prod in var_produtos.split('\n'):
+        item = prod.split(',')
+        lista_produtos.append(Produto(item[0], float(item[1]), int(item[2])))
 
 
 def exibir_produtos(produtos):
-    print('*'*68)
-    print(" TABELA DE PRODUTOS ".center(68))
-    print('*'*68)
+    if produtos:
+        print('*' * 68)
+        print(" TABELA DE PRODUTOS ".center(68))
+        print('*' * 68)
 
-    for i, produto in enumerate(produtos):
-        status = 'Disponível' if produto.disponivel() else 'Indisponível'
-        print(f"[{i:02d}] {produto.nome:<20} | R$ {produto.preco:>8.2f} | "
-              f"Estoque: {produto.estoque:>3} | {status}")
-    print('*'*68)
-    print()
+        for i, produto in enumerate(produtos):
+            status = 'Disponível' if produto.disponivel() else 'Indisponível'
+            print(f"[{i:02d}] {produto.nome:<20} | R$ {produto.preco:>8.2f} | "
+                  f"Estoque: {produto.estoque:>3} | {status}")
+        print('*'*68)
+        print()
+    else:
+        print("\nSem produtos. Adicione um produto")
 
 
 def escolher_produtos_para_compra() -> tuple[Produto, int]:
-    produtos = LISTA_PRODUTOS
+    produtos = lista_produtos
     exibir_produtos(produtos)
 
-    indice = input_num('Escolha o produto', minimo=0, maximo=len(produtos)-1)
-    produto_escolhiddo = produtos[indice]
+    if produtos:
+        indice = input_num('Escolha o produto', minimo=0, maximo=len(produtos)-1)
+        produto_escolhiddo = produtos[indice]
 
-    if not produto_escolhiddo.disponivel():
-        print("Produto esgotado!")
-        return None, 0
+        if not produto_escolhiddo.disponivel():
+            print("Produto esgotado!")
+            return None, 0
 
-    print(f"\n Produto: {produto_escolhiddo.nome}")
-    print(f"Preço unitário: R$ {produto_escolhiddo.preco}")
-    print(f"Estoque disponivel: {produto_escolhiddo.estoque}")
+        print(f"\n Produto: {produto_escolhiddo.nome}")
+        print(f"Preço unitário: R$ {produto_escolhiddo.preco}")
+        print(f"Estoque disponivel: {produto_escolhiddo.estoque}")
 
-    quantidade = input_num('Quantidade desejada', minimo=1, maximo=produto_escolhiddo.estoque)
-    return produto_escolhiddo, quantidade
+        quantidade = input_num('Quantidade desejada', minimo=1, maximo=produto_escolhiddo.estoque)
+        return produto_escolhiddo, quantidade
+    return None, 0
 
 
 def cadastrar_cliente():
@@ -68,9 +77,9 @@ def escolher_cliente(cliente=None):
         return None
 
     if len(cliente.listar_de_clientes()) > 1:
-        print('\n*' * 20)
-        print("ESCOLHA O CLIENTE")
-        print('*' * 20)
+        print('*'*50)
+        print("ESCOLHA O CLIENTE".center(50))
+        print('*'*50)
 
         for i, client in enumerate(cliente.listar_de_clientes()):
             print(f"[{i:02d}] {client}")
@@ -93,28 +102,33 @@ def fazer_compra(cliente=None):
         print("Compra cancelada!")
         return None
 
-    carrinho = Carrinho(cliente_atual)
+    carrinho = Carrinho()
 
-    if carrinho.adicionar_produto(produto, quantidade):
+    if carrinho.adicionar_produto(cliente_atual, produto, quantidade):
         print(f"{quantidade}x {produto.nome} adicionado(s) ao carrinho!")
-        return carrinho
+        return carrinho.itens
     else:
         print("Erro: Estoque insuficiente!")
         return None
 
 
-def listar_carrinho(carrinho):
+def listar_carrinho(carrinho, cliente=None):
+    cliente_atual = escolher_cliente(cliente)
+
     if carrinho is None:
         print("Carrinho vazio!")
         return
 
+    carrinho_atual = carrinho
+
     print('*'*50)
     print(" SEU CARRINHO ".center(50))
     print('*'*50)
-    print(f"Cliente: {carrinho.cliente.nome_completo}")
+    print(f"Cliente: {cliente_atual}")
     print('*'*50)
 
-    resumo = carrinho.obter_resumo()
+    resumo = [resumo for client, resumo in carrinho_atual if client == cliente_atual]
+    resumo = Counter(resumo)
     total_geral = 0
 
     for produto, qtd in resumo.items():
@@ -126,26 +140,42 @@ def listar_carrinho(carrinho):
     print(f"{'TOTAL GERAL':<23} | {'':>2} R${total_geral:.2f}")
     print('*'*50)
     print()
+    return cliente_atual
 
 
-def finalizar_compra(carrinho):
-    if carrinho is None:
+def finalizar_compra(cliente=None):
+    carrinho_atual = Carrinho()
+    cliente_atual = cliente
+
+    if cliente_atual is None:
+        print("Nenhum cliente ativo!")
+        return None
+
+    if len(carrinho_atual.itens) < 1:
         print("Carrinho vazio!")
-        return False
+        return None
 
     print('*'*50)
     print(" FINALIZAÇÃO DA COMPRA ".center(50))
     print('*'*50)
 
-    listar_carrinho(carrinho)
+    cliente_atual = listar_carrinho(carrinho_atual.itens, cliente_atual)
 
     if not input_confirmacao('Confirma o pagamento?'):
         print("Compra cancelada!")
+        carrinho_atual.cancelar(cliente_atual)
         return False
 
     print("Processando pagamento...")
     print("Pagamento aprovado!")
-    print(f"Compra finalizada para {carrinho.cliente.nome_completo}!")
+    print(f"Compra finalizada para {cliente_atual}!")
 
-    carrinho.limpar()
+    produto = carrinho_atual.finalizar_compra(cliente_atual)
+    produto = Counter(produto)
+
+    produtos_comprados = []
+    for prdto, qtd in produto.items():
+        produtos_comprados.append(f"{prdto} ({qtd}x)")
+
+    salvar_historico(cliente_atual, produtos_comprados)
     return True

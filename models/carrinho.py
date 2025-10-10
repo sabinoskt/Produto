@@ -3,27 +3,28 @@ from collections import Counter
 
 
 class Carrinho:
-    def __init__(self, cliente=None):
-        self.cliente = cliente
-        self.itens = []
+    itens = []
 
-    def adicionar_produto(self, produto: Produto, qtd: int = 1):
+    @classmethod
+    def adicionar_produto(cls, cliente, produto: Produto, qtd: int = 1):
         if produto.disponivel(qtd):
             for _ in range(qtd):
-                self.itens.append(produto)
+                cls.itens.append((cliente, produto))
+                produto.reservar(1)
             return True
         return False
 
-    def calcular_total(self) -> float:
-        return sum(produto.preco for produto in self.itens)
+    @classmethod
+    def cancelar(cls, cliente_parametro):
+        for cliente, produto in cls.itens:
+            if cliente.nome_completo.__eq__(cliente_parametro.nome_completo):
+                produto.cancelar_compra()
 
-    def obter_resumo(self):
-        return Counter(self.itens)
-
-    def limpar(self):
-        self.itens.clear()
-
-    def finalizar_compra(self):
-        for produto in self.itens:
-            produto.reservar(1)
-        self.itens.clear()
+    @classmethod
+    def finalizar_compra(cls, cliente_parametro):
+        produto_copia = []
+        for cliente, produto in cls.itens[:]:
+            if cliente.nome_completo.__eq__(cliente_parametro.nome_completo):
+                produto_copia.append(produto.nome)
+                cls.itens.remove((cliente, produto))
+        return produto_copia

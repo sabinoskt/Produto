@@ -19,7 +19,7 @@ def listar_clientes(cliente):
         print("Nenhum cliente ativo")
         return
 
-    print("\n TODOS OS CLIENTES CADASTRADOS:")
+    print("\nTODOS OS CLIENTES CADASTRADOS:")
     clientes = Cliente.listar_de_clientes()
     if clientes:
         for i, client in enumerate(clientes, 1):

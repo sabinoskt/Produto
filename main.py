@@ -2,7 +2,7 @@ import os
 from models.cliente import listar_clientes
 from utils.io import input_num
 from services.compras import exibir_produtos, cadastrar_cliente, fazer_compra, listar_carrinho, finalizar_compra
-from services.compras import LISTA_PRODUTOS
+from services.compras import lista_produtos
 
 
 class SistemaCompras:
@@ -10,22 +10,28 @@ class SistemaCompras:
         self.cliente_ativo = None
         self.carrinho_ativo = None
 
-    def limpar_tela(self):
+    @staticmethod
+    def limpar_tela():
         os.system("cls" if os.name == "nt" else "clear")
 
     def executar(self):
         while True:
-            self.limpar_tela()
-            opcao = self.exibir_menu()
+            try:
+                self.limpar_tela()
+                opcao = self.exibir_menu()
 
-            if opcao == 7:
-                print("Você saiu sistema!")
-                break
+                if opcao == 7:
+                    print("Você saiu sistema!")
+                    break
 
-            self.processar_opcao(opcao)
-            input("\nPressione ENTER para continuar...")
+                self.processar_opcao(opcao)
+                input("\nPressione ENTER para continuar...")
 
-    def exibir_menu(self) -> int:
+            except KeyboardInterrupt:
+                exit()
+
+    @staticmethod
+    def exibir_menu() -> int:
         opcoes = [
             'Listar produtos',
             'Cadastrar cliente',
@@ -36,9 +42,9 @@ class SistemaCompras:
             'Sair'
         ]
 
-        print('*'*20)
-        print('SISTEMA DE COMPRAS'.center(20))
-        print('*'*20)
+        print('*'*50)
+        print('SISTEMA DE COMPRAS'.center(50))
+        print('*'*50)
 
         for i, opcao in enumerate(opcoes, 1):
             print(f"[{i}] {opcao}")
@@ -47,15 +53,14 @@ class SistemaCompras:
     def processar_opcao(self, opcao: int):
         try:
             match opcao:
-                case 1: exibir_produtos(LISTA_PRODUTOS)
+                case 1: exibir_produtos(lista_produtos)
                 case 2: self.cliente_ativo = cadastrar_cliente()
                 case 3: listar_clientes(self.cliente_ativo)
                 case 4:
                     if self.validar_cliente():
                         self.carrinho_ativo = fazer_compra(self.cliente_ativo)
-
-                case 5: listar_carrinho(self.carrinho_ativo)
-                case 6: finalizar_compra(self.carrinho_ativo)
+                case 5: listar_carrinho(self.carrinho_ativo, self.cliente_ativo)
+                case 6: finalizar_compra(self.cliente_ativo)
 
         except Exception as e:
             print(f"Erro inesperado: {e}")
